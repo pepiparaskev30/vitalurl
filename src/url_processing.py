@@ -1,31 +1,33 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-CSV file phshing link data extraction 
-
-Reads the csv and prints the rows as dictionary
-
-How to use it:
-    python url_preprocessing.py 
-
-"""
-
-# import necessary libraries
-import csv
-#import urllib3
-import os, time
-from posix import listdir
+import pandas as pd
+import re
 
 
-input_directory = str(input("provide the directory that the csv is located: "))
+global _REFANG
+global URL_COLS
 
-def find_the_file(input):
-    for filename in os.listdir(input_directory):
-        if filename.startswith("PHISHING") and filename.endswith(".xlsx"):
-            pass
+_REFANG = [
+    (re.compile(r"h(?:xx|tt)p(s?)\s*\[?\s*:\s*\]?\s*/\s*/\s*\]?", re.I), r"http\1://"),
+    (re.compile(r"\[\.\]|\(\.\)|\[dot\]", re.I), "."),
+    (re.compile(r"\[@\]|\(at\)|\[at\]", re.I), "@"),
+]
+
+URL_COLS = ["URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY", "URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ"]
+
+def refang(v):
+    if not isinstance(v, str):
+        return v
+    for pat, rep in _REFANG:
+        v = pat.sub(rep, v)
+    return v.strip()
 
 
-
+def convert_phishing_links(df:pd.DataFrame):
+    for c in URL_COLS:
+        if c in df.columns:
+            df[c] = df[c].map(refang)
+    return df
 
 
