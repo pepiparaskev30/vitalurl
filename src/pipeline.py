@@ -13,6 +13,8 @@ from utilities import read_json_dictionary, check_row, to_greek, unwrap_if_safel
 
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
+
+# κωδικας ροης 
 OUTPUT_COLUMNS = [
     "ΗΜΕΡΟΜΗΝΙΑ",
     "URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY",
