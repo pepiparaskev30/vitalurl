@@ -1,11 +1,20 @@
 services:
-  url-checker:
+  checkmyurl:
     build: .
-    container_name: url-checker
-    ports:
-      - "8001:8000"
+    image: checkmyurl:latest
+    container_name: checkmyurl
     restart: unless-stopped
-    # Για ανάπτυξη: ζωντανή φόρτωση αλλαγών
-    # volumes:
-    #   - ./src:/app
-    # command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # files that are prduced after restart the docker
+      - ./output:/app/output
+      # settings: changed without rebuild - just to restart
+      - ./src/agents.json:/app/src/agents.json:ro
+      - ./src/dictionary.json:/app/src/dictionary.json:ro
+      - ./src/status_gr.json:/app/src/status_gr.json:ro
+      - ./src/brand_categories.json:/app/src/brand_categories.json:ro

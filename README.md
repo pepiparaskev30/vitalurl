@@ -1,181 +1,83 @@
-# URL Vitality
+# CheckMyURL
 
-Batch liveness and phishing-status checker for URLs held in spreadsheets. Reads a `.xlsx` dataset, normalises and probes each URL, and writes back an enriched dataset suitable for CTI ingestion.
+Εργαλείο της Διεύθυνσης Δίωξης Κυβερνοεγκλήματος για τον έλεγχο καταγγελλόμενων URL από αρχείο Excel.
 
----
+Για κάθε URL ελέγχει αν ο ιστότοπος είναι ενεργός, εντοπίζει ανακατευθύνσεις (HTTP, meta refresh, JavaScript) και αποκωδικοποιεί Outlook Safe Links. Στο τέλος παράγει το ενημερωμένο αρχείο προς ΕΑΚ και στατιστικά ανά κατηγορία φορέα.
 
-## Overview
-
-```
-Data (.xlsx)  ──▶  url_checker  ──▶  updated data
-```
-
-`url_checker` is the single entry point. Everything else is internal.
-
----
-
-## Architecture
-
-### High-level
-
-| Stage | Type | Description |
-|---|---|---|
-| `Data (.xlsx)` | Input | Spreadsheet containing the URLs to be assessed |
-| `url_checker` | Process | Orchestrates normalisation, probing and enrichment |
-| `updated data` | Output | Same records, augmented with liveness and phishing verdicts |
-
-### Internal functionality
-
-```
-Data (.xlsx)
-      │
-      ▼
-┌───────────────────────── url_checker ─────────────────────────┐
-│                                                               │
-│  url_normalization ──▶ curl_phising_link ──▶ post_checker_api │
-│                                                    (planned)  │
-└───────────────────────────────────────────────────────────────┘
-      │
-      ▼
-updated data for CTI (.xlsx)
-```
-
-| Module | Status | Responsibility |
-|---|---|---|
-| `url_normalization` | Implemented | Canonicalises raw URL strings before probing |
-| `curl_phising_link` | Implemented | Issues the HTTP request and captures the response signals |
-| `post_checker_api` | Planned | Post-processing / enrichment against an external API |
-
-`post_checker_api` is drawn with a dashed border in the architecture diagram: interface defined, not yet wired into the pipeline.
-
----
-
-## Pipeline stages
-
-### 1. `url_normalization`
-
-Brings heterogeneous input into a single canonical form so that probing and deduplication are deterministic.
-
-- Strips surrounding whitespace, quotes and zero-width characters
-- Adds a scheme where missing (default `http://`)
-- Lower-cases scheme and host; leaves path and query case-sensitive
-- Decodes IDN / punycode hosts for display, retains ASCII form for the request
-- Removes default ports (`:80`, `:443`) and trailing dots on the host
-- Normalises percent-encoding and collapses duplicate slashes in the path
-- Flags malformed entries rather than dropping them, so no input row is lost
-
-### 2. `curl_phising_link`
-
-Performs the live probe and records the observable evidence.
-
-- Issues the request with a configurable timeout and User-Agent
-- Follows redirects up to a bounded depth and records the full redirect chain
-- Captures final URL, HTTP status code, response headers, TLS certificate details and response time
-- Classifies liveness: `LIVE`, `DEAD`, `TIMEOUT`, `TLS_ERROR`, `DNS_ERROR`
-- Detects parked, sinkholed and takedown-notice responses
-- Never executes page content — retrieval only
-
-### 3. `post_checker_api` *(planned)*
-
-Enrichment layer for third-party verdicts.
-
-- Submits the final URL and/or hash to an external reputation service
-- Merges the returned verdict, category and confidence into the record
-- Optional by design: the pipeline runs to completion without it
-
----
-
-## Input format
-
-A `.xlsx` workbook. The URL column is identified by header name (configurable, default `url`). All other columns are carried through unchanged.
-
-| url | *(any other columns)* |
-|---|---|
-| `hxxp://example[.]com/login` | … |
-| `https://example.org/pay` | … |
-
-Defanged notation is normalised on read.
-
-## Output format
-
-The input columns, plus:
-
-| Column | Description |
-|---|---|
-| `normalized_url` | Canonical form used for the probe |
-| `status` | `LIVE` / `DEAD` / `TIMEOUT` / `TLS_ERROR` / `DNS_ERROR` |
-| `http_code` | Final HTTP status code |
-| `final_url` | URL after redirects |
-| `redirect_chain` | Ordered list of intermediate URLs |
-| `response_time_ms` | Round-trip time |
-| `tls_issuer` | Certificate issuer, where TLS was negotiated |
-| `checked_at` | UTC timestamp of the probe |
-| `verdict` | Populated by `post_checker_api` once enabled |
-
----
-
-## Installation
+## Εκκίνηση με Docker
 
 ```bash
-git clone <repository-url>
-cd url-vitality
-python -m venv .venv
-source .venv/bin/activate
+docker compose up -d --build
+```
+
+Άνοιγμα στον browser: http://127.0.0.1:8000
+
+| Εντολή | Πότε |
+|---|---|
+| `docker compose logs -f` | προβολή logs |
+| `docker compose restart` | μετά από αλλαγή στα JSON ρυθμίσεων |
+| `docker compose up -d --build` | μετά από αλλαγή σε κώδικα ή UI |
+| `docker compose down` | σταμάτημα |
+
+## Εκκίνηση χωρίς Docker
+
+```bash
 pip install -r requirements.txt
+uvicorn app:app --app-dir src --host 127.0.0.1 --port 8000 --reload
 ```
 
-## Usage
+## Χρήση
 
-```bash
-python url_checker.py --input data.xlsx --output updated_data.xlsx
-```
+1. Σύρετε το αρχείο `.xlsx` στη σελίδα.
+2. Επιλέξτε αν θα γίνει έλεγχος και ανίχνευση ανακατευθύνσεων.
+3. Πατήστε **Έλεγχος**.
+4. Κατεβάστε:
+   - **Λήψη Excel** → `προς_ΕΑΚ_ΗΗ-ΜΜ-ΕΕΕΕ.xlsx`
+   - **Λήψη στατιστικών** → `Στατιστικά_ΗΗ-ΜΜ-ΕΕΕΕ.xlsx`
 
-### Options
+## Καταστάσεις
 
-| Flag | Default | Description |
+| Ομάδα | Σημαίνει |
+|---|---|
+| Ενεργά | ο ιστότοπος λειτουργεί |
+| Εκτός λειτουργίας | δεν υπάρχει DNS, 404, 410 ή σελίδα αναστολής |
+| Αβέβαιο | 403, timeout, σφάλμα SSL κ.λπ. — μπορεί να λειτουργεί για πραγματικά θύματα |
+| Χωρίς έλεγχο | κενό κελί ή απενεργοποιημένος έλεγχος |
+
+Οι αιτήσεις προς τους ιστοτόπους γίνονται από τη σύνδεση του υπολογιστή που τρέχει την εφαρμογή.
+
+## Ρυθμίσεις
+
+Αρχεία στον φάκελο `src/` — αλλάζουν χωρίς αλλαγή κώδικα:
+
+| Αρχείο | Περιεχόμενο |
+|---|---|
+| `agents.json` | User-Agents που δοκιμάζονται για κάθε URL |
+| `dictionary.json` | αντιστοίχιση στηλών εισόδου → εξόδου |
+| `status_gr.json` | ελληνική μετάφραση καταστάσεων |
+| `brand_categories.json` | λέξεις-κλειδιά για τις κατηγορίες (Τράπεζες, E-shop, Ταχυδρομείο / Courier, Κρατικοί φορείς) |
+
+Μεταβλητές περιβάλλοντος (στο `.env`, βλ. `.env.example`):
+
+| Μεταβλητή | Default | |
 |---|---|---|
-| `--input` | — | Path to the source `.xlsx` |
-| `--output` | — | Path for the enriched `.xlsx` |
-| `--url-column` | `url` | Header name of the URL column |
-| `--timeout` | `10` | Per-request timeout, seconds |
-| `--max-redirects` | `5` | Redirect follow limit |
-| `--concurrency` | `10` | Parallel probes |
-| `--user-agent` | *(tool default)* | Override the request User-Agent |
-| `--no-verify-tls` | off | Probe despite invalid certificates, recording the error |
-| `--enable-post-checker` | off | Enable `post_checker_api` once available |
+| `WORKERS` | 20 | παράλληλοι έλεγχοι |
+| `MAX_UPLOAD_MB` | 20 | μέγιστο μέγεθος αρχείου |
 
----
-
-## Operational notes
-
-- Probing generates traffic to potentially hostile infrastructure. Run it from an environment where that is acceptable and attributable as intended.
-- Concurrency is bounded so the tool is not mistaken for a scan.
-- No page content is rendered or stored; only response metadata is retained.
-- Every input row appears in the output, including rows that failed normalisation.
-
----
-
-## Roadmap
-
-- [ ] Wire `post_checker_api` into the pipeline
-- [ ] Screenshot / DOM capture as an optional module
-- [ ] STIX 2.1 export alongside `.xlsx`
-- [ ] Resume support for interrupted runs
-- [ ] Per-domain rate limiting
-
----
-
-## Project structure
+## Δομή
 
 ```
-url-vitality/
-├── url_checker.py           # Orchestrator / CLI entry point
-├── modules/
-│   ├── url_normalization.py
-│   ├── curl_phising_link.py
-│   └── post_checker_api.py  # planned
-├── docs/
-│   └── architecture.png
-├── requirements.txt
-└── README.md
+├── src/
+│   ├── app.py          API (FastAPI)
+│   ├── pipeline.py     ροή ελέγχου ενός αρχείου
+│   ├── utilities.py    έλεγχος URL, refang/defang, Safe Links, ανακατευθύνσεις
+│   ├── stats.py        στατιστικά ανά κατηγορία
+│   ├── report.py       αναφορά με LLM (δεν χρησιμοποιείται ακόμα)
+│   └── *.json          ρυθμίσεις
+├── static/             UI (index.html, logo)
+├── output/             παραγόμενα αρχεία
+├── Dockerfile
+└── docker-compose.yml
 ```
+
+Τα αρχεία στο `output/` δεν διαγράφονται αυτόματα.

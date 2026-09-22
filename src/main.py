@@ -62,7 +62,6 @@ EXPORT_EXTRA = [
     "REDIRECTED",
     "REDIRECT CHAIN",
     "REDIRECT HOPS",
-    f"{URL_COLS[1]} :: URL",
     f"{URL_COLS[1]} :: STATE",
 ]
 

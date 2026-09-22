@@ -1,0 +1,20 @@
+{
+    "ACTIVE (REDIRECT →": "ΕΝΕΡΓΟ (ΑΝΑΚΑΤΕΥΘΥΝΣΗ →",
+    "ACTIVE": "ΕΝΕΡΓΟ",
+    "SUSPENDED / TAKEN DOWN": "ΑΝΑΣΤΑΛΜΕΝΟ / ΚΑΤΕΒΑΣΜΕΝΟ",
+    "FORBIDDEN": "ΑΠΑΓΟΡΕΥΜΕΝΗ ΠΡΟΣΒΑΣΗ",
+    "NOT FOUND": "ΔΕΝ ΒΡΕΘΗΚΕ",
+    "GONE": "ΜΟΝΙΜΑ ΑΦΑΙΡΕΜΕΝΟ",
+    "RATE LIMITED": "ΠΕΡΙΟΡΙΣΜΟΣ ΑΙΤΗΜΑΤΩΝ",
+    "BLOCKED - LEGAL": "ΜΠΛΟΚΑΡΙΣΜΕΝΟ ΓΙΑ ΝΟΜΙΚΟΥΣ ΛΟΓΟΥΣ",
+    "SERVER ERROR": "ΣΦΑΛΜΑ ΔΙΑΚΟΜΙΣΤΗ",
+    "HTTP ERROR": "ΣΦΑΛΜΑ HTTP",
+    "SSL ERROR": "ΣΦΑΛΜΑ ΠΙΣΤΟΠΟΙΗΤΙΚΟΥ SSL",
+    "TIMEOUT": "ΛΗΞΗ ΧΡΟΝΟΥ ΑΝΑΜΟΝΗΣ",
+    "TOO MANY REDIRECTS": "ΥΠΕΡΒΟΛΙΚΕΣ ΑΝΑΚΑΤΕΥΘΥΝΣΕΙΣ",
+    "CONNECTION REFUSED": "ΑΠΟΡΡΙΨΗ ΣΥΝΔΕΣΗΣ",
+    "CONNECTION ERROR": "ΣΦΑΛΜΑ ΣΥΝΔΕΣΗΣ",
+    "DNS NOT RESOLVED": "ΑΝΕΝΕΡΓΟ ΤΟΜΕΑ (DNS)",
+    "INVALID URL": "ΜΗ ΕΓΚΥΡΟ URL",
+    "UNKNOWN ERROR": "ΑΓΝΩΣΤΟ ΣΦΑΛΜΑ"
+}

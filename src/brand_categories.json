@@ -1,0 +1,23 @@
+{
+    "Τράπεζες": [
+        "τραπεζα", "bank", "eurobank", "πειραιως", "piraeus", "winbank", "εθνικη", "nbg", "ibank",
+        "alpha", "alphabank", "attica", "αττικη", "optima", "viva", "revolut", "iris", "ιρις",
+        "paypal", "visa", "mastercard", "diners", "dias", "διας", "κοινοπραξια"
+    ],
+    "E-shop": [
+        "eshop", "e-shop", "skroutz", "σκρουτζ", "plaisio", "πλαισιο", "public", "κωτσοβολος", "kotsovolos",
+        "amazon", "ebay", "temu", "shein", "aliexpress", "ikea", "jumbo", "lidl", "σκλαβενιτης", "sklavenitis",
+        "μασουτης", "masoutis", "mymarket", "vinted", "zara", "hmall", "germanos", "γερμανος", "bestprice",
+        "efood", "wolt", "booking", "airbnb", "netflix", "spotify", "κουπονι", "coupon"
+    ],
+    "Ταχυδρομείο / Courier": [
+        "ελτα", "elta", "ταχυδρομειο", "courier", "acs", "γενικη ταχυδρομικη", "geniki", "taxydromiki",
+        "speedex", "dhl", "fedex", "ups", "tnt", "boxnow", "box now", "courier center", "easy mail", "δεμα", "parcel"
+    ],
+    "Κρατικοί φορείς": [
+        "εφκα", "efka", "e-εφκα", "ελας", "ελληνικη αστυνομια", "αστυνομια", "hellenic police", "astynomia",
+        "ααδε", "aade", "taxisnet", "taxis", "gov", "govgr", "gov.gr", "κεπ", "δυπα", "dypa", "οαεδ", "oaed",
+        "οπεκα", "opeka", "κτηματολογιο", "ktimatologio", "υπουργειο", "ministry", "δημος", "εφορια",
+        "πυροσβεστικη", "λιμενικο", "κτεο", "e-παραβολο", "eparavolo", "wallet", "gov wallet"
+    ]
+}
