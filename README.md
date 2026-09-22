@@ -19,12 +19,26 @@ docker compose up -d --build
 | `docker compose up -d --build` | μετά από αλλαγή σε κώδικα ή UI |
 | `docker compose down` | σταμάτημα |
 
-## Εκκίνηση χωρίς Docker
+## Εγκατάσταση χωρίς Docker (υπολογιστής / VM)
+
+Απαιτείται **Python 3.10+**. Σε Ubuntu/Debian: `sudo apt install python3 python3-venv`
 
 ```bash
-pip install -r requirements.txt
-uvicorn app:app --app-dir src --host 127.0.0.1 --port 8000 --reload
+chmod +x checkmyurl.sh     # μόνο την πρώτη φορά
+./checkmyurl.sh
 ```
+
+Την πρώτη φορά το script δημιουργεί virtual environment (`.venv/`) και εγκαθιστά τα πακέτα. Στις επόμενες εκτελέσεις ξεκινά αμέσως — ξαναεγκαθιστά πακέτα μόνο αν αλλάξει το `requirements.txt`.
+
+| Εντολή | |
+|---|---|
+| `./checkmyurl.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
+| `./checkmyurl.sh --install-only` | μόνο εγκατάσταση |
+| `HOST=0.0.0.0 PORT=9000 ./checkmyurl.sh` | άλλη διεύθυνση / port |
+
+Τερματισμός με **Ctrl+C**.
+
+Σε Windows: χρήση μέσω Docker ή WSL.
 
 ## Χρήση
 
@@ -63,6 +77,8 @@ uvicorn app:app --app-dir src --host 127.0.0.1 --port 8000 --reload
 |---|---|---|
 | `WORKERS` | 20 | παράλληλοι έλεγχοι |
 | `MAX_UPLOAD_MB` | 20 | μέγιστο μέγεθος αρχείου |
+| `HOST` | 127.0.0.1 | διεύθυνση (μόνο για `checkmyurl.sh`) |
+| `PORT` | 8000 | port (μόνο για `checkmyurl.sh`) |
 
 ## Δομή
 
@@ -76,6 +92,7 @@ uvicorn app:app --app-dir src --host 127.0.0.1 --port 8000 --reload
 │   └── *.json          ρυθμίσεις
 ├── static/             UI (index.html, logo)
 ├── output/             παραγόμενα αρχεία
+├── checkmyurl.sh       εγκατάσταση και εκκίνηση χωρίς Docker
 ├── Dockerfile
 └── docker-compose.yml
 ```
