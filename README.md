@@ -24,17 +24,17 @@ docker compose up -d --build
 Απαιτείται **Python 3.10+**. Σε Ubuntu/Debian: `sudo apt install python3 python3-venv`
 
 ```bash
-chmod +x checkmyurl.sh     # μόνο την πρώτη φορά
-./checkmyurl.sh
+chmod +x install.sh     # μόνο την πρώτη φορά
+./install.sh
 ```
 
 Την πρώτη φορά το script δημιουργεί virtual environment (`.venv/`) και εγκαθιστά τα πακέτα. Στις επόμενες εκτελέσεις ξεκινά αμέσως — ξαναεγκαθιστά πακέτα μόνο αν αλλάξει το `requirements.txt`.
 
 | Εντολή | |
 |---|---|
-| `./checkmyurl.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
-| `./checkmyurl.sh --install-only` | μόνο εγκατάσταση |
-| `HOST=0.0.0.0 PORT=9000 ./checkmyurl.sh` | άλλη διεύθυνση / port |
+| `./install.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
+| `./install.sh --install-only` | μόνο εγκατάσταση |
+| `HOST=0.0.0.0 PORT=9000 ./install.sh` | άλλη διεύθυνση / port |
 
 Τερματισμός με **Ctrl+C**.
 
