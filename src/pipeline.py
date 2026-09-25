@@ -9,12 +9,10 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 
-from utilities import read_json_dictionary, check_row, to_greek, unwrap_if_safelink, unwrap_safelink, refang
+from utilities import read_json_dictionary, check_row, to_greek, unwrap_if_safelink, unwrap_safelink, refang, defang
 
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
-
-# κωδικας ροης 
 OUTPUT_COLUMNS = [
     "ΗΜΕΡΟΜΗΝΙΑ",
     "URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY",
@@ -84,8 +82,13 @@ def brand_group(brand, url, rules):
 
 
 def defang_column(df, col):
-    """Defanged μορφή (hxxps[://]...) ώστε οι σύνδεσμοι να μην είναι clickable στο Excel."""
-    df[col] = df[col].apply(lambda x: defang(str(x)) if pd.notna(x) and str(x).strip() else x)
+    """Defanged μορφή (hxxps[://]...) ώστε οι σύνδεσμοι να μην είναι clickable στο Excel.
+
+    Προηγείται refang, ώστε μια ήδη defanged τιμή να μην γίνει [[.]].
+    """
+    df[col] = df[col].apply(
+        lambda x: defang(refang(x)) if pd.notna(x) and str(x).strip() else x
+    )
 
 
 def category(status):
@@ -120,6 +123,7 @@ def process_df(old_df, ua_agents, dictionary_columns, status_gr=None, workers=20
     groups = [brand_group(b, u, rules) for b, u in zip(new_df[BRAND_COL], new_df[URL_COL])]
 
     if not check:
+        defang_column(new_df, URL_COL)
         defang_column(new_df, REDIRECT_COL)
         return new_df, ["empty"] * len(new_df), groups
 
@@ -134,6 +138,7 @@ def process_df(old_df, ua_agents, dictionary_columns, status_gr=None, workers=20
             redirect if redirect else existing
             for (_, redirect), existing in zip(results, new_df[REDIRECT_COL])
         ]
+    defang_column(new_df, URL_COL)
     defang_column(new_df, REDIRECT_COL)
     return new_df, categories, groups
 
