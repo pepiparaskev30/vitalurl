@@ -1,6 +1,6 @@
 # CheckMyURL
 
-Εργαλείο για εξαγωγη phishing URLS από αρχείο Excel.
+Εργαλείο της Διεύθυνσης Δίωξης Κυβερνοεγκλήματος για τον έλεγχο καταγγελλόμενων URL από αρχείο Excel.
 
 Για κάθε URL ελέγχει αν ο ιστότοπος είναι ενεργός, εντοπίζει ανακατευθύνσεις (HTTP, meta refresh, JavaScript) και αποκωδικοποιεί Outlook Safe Links. Στο τέλος παράγει το ενημερωμένο αρχείο προς ΕΑΚ και στατιστικά ανά κατηγορία φορέα.
 
@@ -24,17 +24,17 @@ docker compose up -d --build
 Απαιτείται **Python 3.10+**. Σε Ubuntu/Debian: `sudo apt install python3 python3-venv`
 
 ```bash
-chmod +x install.sh     # μόνο την πρώτη φορά
-./install.sh
+chmod +x checkmyurl.sh     # μόνο την πρώτη φορά
+./checkmyurl.sh
 ```
 
 Την πρώτη φορά το script δημιουργεί virtual environment (`.venv/`) και εγκαθιστά τα πακέτα. Στις επόμενες εκτελέσεις ξεκινά αμέσως — ξαναεγκαθιστά πακέτα μόνο αν αλλάξει το `requirements.txt`.
 
 | Εντολή | |
 |---|---|
-| `./install.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
-| `./install.sh --install-only` | μόνο εγκατάσταση |
-| `HOST=0.0.0.0 PORT=9000 ./install.sh` | άλλη διεύθυνση / port |
+| `./checkmyurl.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
+| `./checkmyurl.sh --install-only` | μόνο εγκατάσταση |
+| `HOST=0.0.0.0 PORT=9000 ./checkmyurl.sh` | άλλη διεύθυνση / port |
 
 Τερματισμός με **Ctrl+C**.
 
@@ -48,6 +48,26 @@ chmod +x install.sh     # μόνο την πρώτη φορά
 4. Κατεβάστε:
    - **Λήψη Excel** → `προς_ΕΑΚ_ΗΗ-ΜΜ-ΕΕΕΕ.xlsx`
    - **Λήψη στατιστικών** → `Στατιστικά_ΗΗ-ΜΜ-ΕΕΕΕ.xlsx`
+
+## Βαθύς έλεγχος (προαιρετικά)
+
+Το `requests` δεν εκτελεί JavaScript, οπότε χάνει ανακατευθύνσεις που γίνονται από τη σελίδα. Η επιλογή **Βαθύς έλεγχος** ανοίγει τα URL σε πραγματικό browser, μόνο για τις γραμμές που είναι **Ενεργά** ή **Αβέβαιο**, έως `DEEP_LIMIT` γραμμές.
+
+Τρεις τρόποι, κατά σειρά προτίμησης:
+
+```bash
+# Α. Τοπικός headless browser — τίποτα δεν φεύγει σε τρίτους, χωρίς όρια
+pip install playwright && playwright install chromium
+
+# Β. urlscan.io με κλειδί — νέο scan, report και screenshot
+export URLSCAN_API_KEY="..."
+export URLSCAN_VISIBILITY=unlisted   # ποτέ public σε URL ενεργής υπόθεσης
+
+# Γ. Χωρίς τίποτα από τα παραπάνω: αναζήτηση σε υπάρχοντα scans του urlscan.io.
+#    Δεν υποβάλλεται τίποτα, βρίσκει μόνο ό,τι έχει ήδη σκαναριστεί από άλλους.
+```
+
+Αν βρεθεί αλυσίδα που δεν είχε εντοπίσει ο απλός έλεγχος, γράφεται στη στήλη ανακατεύθυνσης του αρχείου.
 
 ## Καταστάσεις
 
@@ -77,6 +97,10 @@ chmod +x install.sh     # μόνο την πρώτη φορά
 |---|---|---|
 | `WORKERS` | 20 | παράλληλοι έλεγχοι |
 | `MAX_UPLOAD_MB` | 20 | μέγιστο μέγεθος αρχείου |
+| `DEEP_MODE` | auto | βαθύς έλεγχος: auto, playwright, urlscan ή search |
+| `DEEP_LIMIT` | 30 | μέγιστες γραμμές ανά βαθύ έλεγχο |
+| `URLSCAN_API_KEY` | — | κλειδί urlscan.io |
+| `URLSCAN_VISIBILITY` | unlisted | unlisted, private ή public |
 | `HOST` | 127.0.0.1 | διεύθυνση (μόνο για `checkmyurl.sh`) |
 | `PORT` | 8000 | port (μόνο για `checkmyurl.sh`) |
 

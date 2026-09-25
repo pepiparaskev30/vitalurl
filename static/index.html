@@ -166,6 +166,14 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink-3);width:44px}
     </div>
   </div>
 
+  <div class="opt check">
+    <input type="checkbox" id="deep">
+    <div>
+      <label for="deep">Βαθύς έλεγχος</label>
+      <div class="hint" id="deepHint">Μόνο για ενεργά και αβέβαια, με headless browser ή urlscan.io. Αργεί.</div>
+    </div>
+  </div>
+
   <div class="opt">
     <label for="maxrows">Γραμμές</label>
     <input type="number" id="maxrows" value="1000" min="1" max="10000" style="width:96px">
@@ -189,6 +197,7 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink-3);width:44px}
   <div class="exports">
     <button id="xlsx">Λήψη Excel</button>
     <button class="ghost" id="statsx">Λήψη στατιστικών</button>
+    <button class="ghost" id="reportx">Λήψη αναφοράς</button>
     <button class="ghost" id="csv">Λήψη CSV</button>
     <button class="ghost" id="json">Λήψη JSON</button>
   </div>
@@ -198,7 +207,7 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink-3);width:44px}
 <script>
 const $ = s => document.querySelector(s);
 const drop=$('#drop'), fi=$('#fileinput'), run=$('#run'), statusEl=$('#status'), bar=$('#bar');
-let file=null, data=null, rows=[], cats=[], groups=[], filter=null;
+let file=null, data=null, rows=[], cats=[], groups=[], deep={}, filter=null;
 
 const URLCOL    = 'URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY';
 const REDIRCOL  = 'URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ';
@@ -230,7 +239,8 @@ function params(){
   return new URLSearchParams({
     check: $('#check').checked,
     redirects: $('#scan').checked,
-    max_rows: $('#maxrows').value
+    max_rows: $('#maxrows').value,
+    deep: $('#deep').checked
   });
 }
 
@@ -245,7 +255,7 @@ run.onclick = async () => {
     const r = await fetch('/api/check?'+params(), {method:'POST', body:fd});
     const body = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(body.detail || `HTTP ${r.status}`);
-    data = body; rows = body.rows; cats = body.categories; groups = body.groups || []; filter = null;
+    data = body; rows = body.rows; cats = body.categories; groups = body.groups || []; deep = body.deep || {}; filter = null;
     renderStats();
     renderCatStats();
     render();
@@ -291,7 +301,10 @@ function render(){
 
   /* πίνακας */
   const idx = rows.map((r,i)=>i).filter(i => filter===null || groupOf(rows[i][STATUSCOL])===filter);
-  const head = ['Γρ.','Σύνδεσμος','Κατάσταση','Κωδ.','Ανακατεύθυνση','Hops','Κατηγορία','Μιμούμενος','Είδος'];
+  const hasDeep = Object.keys(deep).length > 0;
+  const head = ['Γρ.','Σύνδεσμος','Κατάσταση','Κωδ.','Ανακατεύθυνση','Hops']
+    .concat(hasDeep ? ['Βαθύς έλεγχος'] : [])
+    .concat(['Κατηγορία','Μιμούμενος','Είδος']);
 
   $('#table thead').innerHTML = '<tr>'+head.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>';
 
@@ -313,6 +326,7 @@ function render(){
       + `<td><span class="badge ${BADGE[cats[i]]||'b-idle'}">${esc(st||'—')}</span></td>`
       + `<td class="n">${codeOf(st)}</td>`
       + `<td>${redir}</td><td class="n${hops?' hops':''}">${hops || ''}</td>`
+      + (hasDeep ? `<td>${deepCell(i)}</td>` : '')
       + `<td>${esc(groups[i]||'')}</td>`
       + `<td>${esc(r[BRANDCOL]||'')}</td>`
       + `<td class="muted">${esc(String(r[TYPECOL]||'').slice(0,48))}</td>`
@@ -426,6 +440,43 @@ $('#statsx').onclick = async () => {
   }catch(err){ say('Η λήψη απέτυχε: '+err.message, true); }
   finally{ btn.disabled=false; }
 };
+
+$('#reportx').onclick = async () => {
+  if(!data) return;
+  const btn = $('#reportx'); btn.disabled=true; bar.classList.add('on');
+  say('Σύνταξη αναφοράς… μπορεί να διαρκέσει έως 1–2 λεπτά.');
+  try{
+    const r = await fetch(`/api/report/${data.file_id}`, {method:'POST'});
+    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || `HTTP ${r.status}`);
+    dl(await r.blob(), data.report_filename || 'Αναφορά.docx');
+    say('Η αναφορά κατέβηκε. Ελέγξτε το κείμενο πριν τη διαβίβαση.');
+  }catch(err){ say(err.message, true); }
+  finally{ btn.disabled=false; bar.classList.remove('on'); }
+};
+
+function deepCell(i){
+  const d = deep[String(i)];
+  if(!d) return '<span class="muted">—</span>';
+  if(d.error) return `<span class="badge b-warn">${esc(d.error)}</span>`;
+  if(d.link) return `<a href="${esc(d.link)}" target="_blank" rel="noopener">${d.source === 'search' ? 'υπάρχον scan' : 'urlscan'}</a>`;
+  if(d.screenshot) return `<a href="/api/shot/${data.file_id}/${i}" target="_blank" rel="noopener">screenshot</a>`;
+  return '<span class="muted">ok</span>';
+}
+
+// Ενεργοποίηση της επιλογής μόνο αν υπάρχει διαθέσιμος τρόπος στο μηχάνημα
+fetch('/api/deep-modes').then(r=>r.json()).then(m=>{
+  if(!m.mode){
+    $('#deep').disabled = true;
+    $('#deepHint').textContent = 'Μη διαθέσιμο: απαιτείται playwright ή URLSCAN_API_KEY.';
+  }else{
+    const hints = {
+      playwright: 'Μόνο για ενεργά και αβέβαια, με τοπικό headless browser. Αργεί.',
+      urlscan:    'Μόνο για ενεργά και αβέβαια, με νέο scan στο urlscan.io. Αργεί.',
+      search:     'Αναζήτηση σε υπάρχοντα scans του urlscan.io — χωρίς υποβολή, χωρίς κλειδί.',
+    };
+    $('#deepHint').textContent = hints[m.mode] || $('#deepHint').textContent;
+  }
+}).catch(()=>{});
 
 function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
