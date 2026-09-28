@@ -71,11 +71,13 @@ def initialize_new_df(columns):
 # URL helpers
 # ---------------------------------------------------------------------------
 
+# hxxps[://], hxxps:[://], hxxps[:]//, hxxps://, https[:]// κ.λπ. → https://
+SCHEME = re.compile(r"(?i)h(?:xx|tt)p(s?)[:\[\]]*:?/{2}[\]]*")
+
+
 def refang(url):
     url = str(url).strip()
-    url = re.sub(r"(?i)hxxp(s?)\[://\]", r"http\1://", url)     # hxxps[://]
-    url = re.sub(r"(?i)hxxp(s?)\[?:\]?//", r"http\1://", url)   # hxxps://, hxxps[:]//
-    url = re.sub(r"(?i)^(https?)\[:\]//", r"\1://", url)        # https[:]//
+    url = SCHEME.sub(lambda m: f"http{m.group(1).lower()}://", url, count=1)
     return (url.replace("[.]", ".")
                .replace("(.)", ".")
                .replace("{.}", ".")

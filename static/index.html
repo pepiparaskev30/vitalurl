@@ -197,7 +197,6 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink-3);width:44px}
   <div class="exports">
     <button id="xlsx">Λήψη Excel</button>
     <button class="ghost" id="statsx">Λήψη στατιστικών</button>
-    <button class="ghost" id="reportx">Λήψη αναφοράς</button>
     <button class="ghost" id="csv">Λήψη CSV</button>
     <button class="ghost" id="json">Λήψη JSON</button>
   </div>
@@ -441,18 +440,6 @@ $('#statsx').onclick = async () => {
   finally{ btn.disabled=false; }
 };
 
-$('#reportx').onclick = async () => {
-  if(!data) return;
-  const btn = $('#reportx'); btn.disabled=true; bar.classList.add('on');
-  say('Σύνταξη αναφοράς… μπορεί να διαρκέσει έως 1–2 λεπτά.');
-  try{
-    const r = await fetch(`/api/report/${data.file_id}`, {method:'POST'});
-    if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || `HTTP ${r.status}`);
-    dl(await r.blob(), data.report_filename || 'Αναφορά.docx');
-    say('Η αναφορά κατέβηκε. Ελέγξτε το κείμενο πριν τη διαβίβαση.');
-  }catch(err){ say(err.message, true); }
-  finally{ btn.disabled=false; bar.classList.remove('on'); }
-};
 
 function deepCell(i){
   const d = deep[String(i)];

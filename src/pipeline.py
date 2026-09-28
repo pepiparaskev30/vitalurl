@@ -91,6 +91,29 @@ def defang_column(df, col):
     )
 
 
+def auto_rename(columns, dictionary_columns):
+    """Αντιστοίχιση επικεφαλίδων εισόδου στη μορφή εξόδου.
+
+    1. Ό,τι ορίζει το dictionary.json.
+    2. Αλλιώς, ανεκτή σύγκριση: αγνοεί πεζά/τόνους/τελείες και δέχεται επιπλέον
+       κατάληξη, ώστε το "URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ (URLSCAN/WHEREGOES/VIRUSTOTAL)"
+       να ταιριάξει με το "URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ".
+    Ό,τι δεν ταιριάξει αγνοείται αργότερα από το reindex.
+    """
+    mapping = dict(dictionary_columns or {})
+    targets = [(normalize(t), t) for t in OUTPUT_COLUMNS]
+
+    for col in columns:
+        if col in mapping or col in OUTPUT_COLUMNS:
+            continue
+        norm = normalize(col)
+        for tnorm, target in targets:
+            if norm.startswith(tnorm) or tnorm.startswith(norm):
+                mapping[col] = target
+                break
+    return mapping
+
+
 def category(status):
     if status is None:
         return "empty"
@@ -111,7 +134,9 @@ def process_df(old_df, ua_agents, dictionary_columns, status_gr=None, workers=20
     if max_rows:
         old_df = old_df.head(max_rows)
 
-    new_df = old_df.rename(columns=dictionary_columns).reindex(columns=OUTPUT_COLUMNS)
+    # κρατάμε μόνο τις στήλες που μας ενδιαφέρουν· οι υπόλοιπες αγνοούνται
+    new_df = old_df.rename(columns=auto_rename(old_df.columns, dictionary_columns))
+    new_df = new_df.loc[:, ~new_df.columns.duplicated()].reindex(columns=OUTPUT_COLUMNS)
     new_df[URL_COL] = new_df[URL_COL].apply(unwrap_if_safelink)
 
     # τυχόν ανακατευθύνσεις από το αρχικό αρχείο → κανονική μορφή (refang + unwrap Safe Links)

@@ -126,7 +126,7 @@ def _urlscan_one(url, timeout=120):
             start, final = task.get("url", url), page.get("url", url)
             chain = [start] if start == final else [start, final]
             return {"source": "urlscan", "chain": chain, "final_url": final,
-                    "link": task.get("reportURL", f"https://urlscan.io/result/{uuid}/"),
+                    "link": task.get("reportURL") or f"https://urlscan.io/result/{uuid}/",
                     "screenshot_url": task.get("screenshotURL")}
     return {"source": "urlscan", "error": "timeout"}
 
@@ -165,8 +165,12 @@ def _urlscan_search_one(url):
     final = hit.get("page", {}).get("url", url)
     start = hit.get("task", {}).get("url", url)
     chain = [start] if start == final else [start, final]
+    # το hit["result"] είναι το API endpoint (JSON). Η σελίδα για άνθρωπο είναι /result/<uuid>/
+    uuid_ = hit.get("_id") or ""
+    link = f"https://urlscan.io/result/{uuid_}/" if uuid_ else hit.get("result")
     return {"source": "search", "chain": chain, "final_url": final,
-            "link": hit.get("result"), "scanned_at": hit.get("task", {}).get("time")}
+            "link": link, "screenshot_url": hit.get("screenshot"),
+            "scanned_at": hit.get("task", {}).get("time")}
 
 
 def _search_batch(items):

@@ -4,4 +4,7 @@ python-multipart
 pandas
 openpyxl
 requests
- 
+python-docx
+
+# Προαιρετικά, για τον βαθύ έλεγχο με τοπικό browser:
+# playwright

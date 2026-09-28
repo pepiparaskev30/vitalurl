@@ -13,6 +13,8 @@ from fastapi.concurrency import run_in_threadpool
 
 from pipeline import load_config, process_df, save_excel
 from stats import build_stats, stats_to_json, save_stats_excel
+from deepcheck import deep_check, active_mode
+from utilities import defang, refang
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))       # .../checkmyurl/src
 BASE_DIR = os.path.dirname(SRC_DIR)                         # .../checkmyurl
@@ -30,6 +32,8 @@ app = FastAPI(title="CheckMyURL API")
 app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+REDIRECT_COL = "URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ"
+URL_COL = "URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY"
 ALLOWED_EXT = (".xlsx", ".xlsm")
 
 
@@ -57,6 +61,7 @@ async def check(
     check: bool = Query(True, description="Send requests to each URL"),
     redirects: bool = Query(True, description="Record redirect chains"),
     max_rows: int = Query(1000, ge=1, le=10000),
+    deep: bool = Query(False, description="Deep check (headless browser or urlscan.io)"),
 ):
     if not file.filename or not file.filename.lower().endswith(ALLOWED_EXT):
         raise HTTPException(400, "Δεκτά μόνο αρχεία .xlsx ή .xlsm")
@@ -78,20 +83,39 @@ async def check(
         config["brand_categories"],
     )
 
+    # Βαθύς έλεγχος με browser ή urlscan, μόνο για ενεργά και αβέβαια
+    deep_results, deep_mode = {}, None
+    if deep:
+        file_id_pre = uuid.uuid4().hex
+        urls = {i: refang(str(u)) for i, u in enumerate(new_df[URL_COL]) if pd.notna(u)}
+        deep_results, deep_mode = await run_in_threadpool(
+            deep_check, urls, categories, OUTPUT_PATH, f"{file_id_pre}_shot__"
+        )
+        # αν βρέθηκε αλυσίδα που δεν είχε πιάσει το requests, γράφεται στη στήλη
+        chains = list(new_df[REDIRECT_COL])
+        for i, res in deep_results.items():
+            chain = res.get("chain") or []
+            if len(chain) > 1 and not str(chains[i] or "").strip():
+                chains[i] = " → ".join(defang(c) for c in chain)
+        new_df[REDIRECT_COL] = chains
+
     today = f"{datetime.now():%d-%m-%Y}"
     download_name = f"προς_ΕΑΚ_{today}.xlsx"
     stats_name = f"Στατιστικά_{today}.xlsx"
-    file_id = uuid.uuid4().hex
+    file_id = file_id_pre if deep and deep_results else uuid.uuid4().hex
     await run_in_threadpool(
         save_excel, new_df, categories, os.path.join(OUTPUT_PATH, f"{file_id}__{download_name}")
     )
 
     group_order = [g for g, _ in config["brand_categories"]]
     stats = build_stats(new_df, categories, groups, group_order)
+    checked_at = f"{datetime.now():%d/%m/%Y %H:%M}"
     await run_in_threadpool(
         save_stats_excel, stats, os.path.join(OUTPUT_PATH, f"{file_id}_stats__{stats_name}"),
-        f"{len(new_df)} URL · έλεγχος {datetime.now():%d/%m/%Y %H:%M}",
+        f"{len(new_df)} URL · έλεγχος {checked_at}",
     )
+
+    stats_json = stats_to_json(stats)
 
     return {
         "file_id": file_id,
@@ -100,20 +124,26 @@ async def check(
         "rows": to_records(new_df),
         "categories": categories,
         "groups": groups,
-        "stats": stats_to_json(stats),
+        "deep": {str(k): v for k, v in deep_results.items()},
+        "deep_mode": deep_mode,
+        "stats": stats_json,
         "stats_filename": stats_name,
     }
 
 
-def _send(prefix):
+def _find(prefix):
     for name in os.listdir(OUTPUT_PATH):
         if name.startswith(prefix):
-            return FileResponse(
-                os.path.join(OUTPUT_PATH, name),
-                filename=name.split("__", 1)[1],
-                media_type=XLSX_MIME,
-            )
-    raise HTTPException(404, "Το αρχείο δεν βρέθηκε")
+            return name
+    return None
+
+
+def _send(prefix, media_type=XLSX_MIME):
+    name = _find(prefix)
+    if not name:
+        raise HTTPException(404, "Το αρχείο δεν βρέθηκε")
+    return FileResponse(os.path.join(OUTPUT_PATH, name),
+                        filename=name.split("__", 1)[1], media_type=media_type)
 
 
 def _valid(file_id):
@@ -131,3 +161,18 @@ def download(file_id: str):
 def download_stats(file_id: str):
     _valid(file_id)
     return _send(f"{file_id}_stats__")
+
+
+@app.get("/api/deep-modes")
+def deep_modes():
+    """Ποιος τρόπος βαθέος ελέγχου είναι διαθέσιμος σε αυτό το μηχάνημα."""
+    return {"mode": active_mode()}
+
+
+@app.get("/api/shot/{file_id}/{index}")
+def screenshot(file_id: str, index: int):
+    _valid(file_id)
+    name = _find(f"{file_id}_shot__{index}.png")
+    if not name:
+        raise HTTPException(404, "Δεν βρέθηκε screenshot")
+    return FileResponse(os.path.join(OUTPUT_PATH, name), media_type="image/png")
