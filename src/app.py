@@ -33,6 +33,14 @@ app.mount("/static", StaticFiles(directory=STATIC_PATH), name="static")
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 REDIRECT_COL = "URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ"
+STATUS_COL = "ΤΡΕΧΟΥΣΑ ΚΑΤΑΣΤΑΣΗ (ACTIVE/OFFLINE/BROWSER BLOCKED)"
+# Ετυμηγορία urlscan → τελική κατάσταση της γραμμής
+DEEP_VERDICT = {
+    "ACTIVE": ("ACTIVE (urlscan)", "ΕΝΕΡΓΟ (επιβεβαίωση urlscan)", "active"),
+    "BROWSER BLOCKED": ("BROWSER BLOCKED (urlscan)",
+                        "ΜΠΛΟΚΑΡΙΣΜΕΝΟ ΑΠΟ BROWSER / CDN (urlscan)", "error"),
+    "OFFLINE": (None, None, None),
+}
 URL_COL = "URL ή ΙΡ ΚΑΤΑΓΓΕΛΛΟΜΕΝΟΥ ΙΣΤΟΤΟΠΟY"
 ALLOWED_EXT = (".xlsx", ".xlsm")
 
@@ -93,11 +101,21 @@ async def check(
         )
         # αν βρέθηκε αλυσίδα που δεν είχε πιάσει το requests, γράφεται στη στήλη
         chains = list(new_df[REDIRECT_COL])
+        statuses = list(new_df[STATUS_COL])
         for i, res in deep_results.items():
             chain = res.get("chain") or []
             if len(chain) > 1 and not str(chains[i] or "").strip():
                 chains[i] = " → ".join(defang(c) for c in chain)
+
+            # το scan έγινε από άλλο δίκτυο: αν είδε τη σελίδα, η γραμμή δεν είναι αβέβαιη
+            en, gr, cat = DEEP_VERDICT.get(res.get("verdict") or "", (None, None, None))
+            if en:
+                statuses[i] = to_greek(en, config["status_gr"]) if config["status_gr"] else en
+                if statuses[i] == en and gr:
+                    statuses[i] = gr
+                categories[i] = cat
         new_df[REDIRECT_COL] = chains
+        new_df[STATUS_COL] = statuses
 
     today = f"{datetime.now():%d-%m-%Y}"
     download_name = f"προς_ΕΑΚ_{today}.xlsx"
