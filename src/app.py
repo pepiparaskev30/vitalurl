@@ -11,10 +11,10 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
 
-from pipeline import load_config, process_df, save_excel
+from pipeline import load_config, process_df, save_excel, category
 from stats import build_stats, stats_to_json, save_stats_excel
-from deepcheck import deep_check, active_mode
-from utilities import defang, refang
+from deepcheck import deep_check, active_mode, deep_check_one
+from utilities import defang, refang, unwrap_safelink, check_single, to_greek
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))       # .../checkmyurl/src
 BASE_DIR = os.path.dirname(SRC_DIR)                         # .../checkmyurl
@@ -176,3 +176,38 @@ def screenshot(file_id: str, index: int):
     if not name:
         raise HTTPException(404, "Δεν βρέθηκε screenshot")
     return FileResponse(os.path.join(OUTPUT_PATH, name), media_type="image/png")
+
+
+@app.post("/cybercop")
+async def support_service(
+    url: str = Query(..., description="URL σε defanged ή κανονική μορφή"),
+    deep: bool = Query(False, description="Επιπλέον έλεγχος με browser ή urlscan"),
+):
+    """Έλεγχος ενός URL: κατάσταση, αλυσίδα ανακατεύθυνσης και τελικός προορισμός."""
+    clean = unwrap_safelink(refang(url))
+    if not clean.lower().startswith(("http://", "https://")):
+        raise HTTPException(400, "Μη έγκυρο URL")
+
+    status, chain = await run_in_threadpool(check_single, clean, config["ua_agents"])
+    chain = chain or [clean]
+
+    if deep:
+        results, mode = await run_in_threadpool(deep_check_one, clean)
+        if results and len(results.get("chain") or []) > len(chain):
+            chain = results["chain"]
+
+    return {
+        "input": url,
+        "url": clean,
+        "defanged": defang(clean),
+        "status": status,
+        "status_gr": to_greek(status, config["status_gr"]),
+        "category": category(status),
+        "active": bool(status and status.startswith("ACTIVE")),
+        "redirected": len(chain) > 1,
+        "final_url": chain[-1],
+        "final_url_defanged": defang(chain[-1]),
+        "chain": chain,
+        "chain_defanged": [defang(c) for c in chain],
+        "hops": max(len(chain) - 1, 0),
+    }

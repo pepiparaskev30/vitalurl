@@ -202,3 +202,15 @@ def deep_check(urls_by_index, categories, out_dir=None, prefix=""):
     if mode == "urlscan":
         return _urlscan_batch(items), mode
     return _search_batch(items), mode
+
+
+def deep_check_one(url, out_dir=None, prefix=""):
+    """Βαθύς έλεγχος ενός μόνο URL. Επιστρέφει (result, mode)."""
+    mode = active_mode()
+    if not mode:
+        return {}, None
+    if mode == "playwright":
+        return _playwright_batch([(0, url)], out_dir, prefix).get(0, {}), mode
+    if mode == "urlscan":
+        return _urlscan_one(url), mode
+    return _urlscan_search_one(url), mode
