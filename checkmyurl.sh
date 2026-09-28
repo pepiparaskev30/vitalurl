@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 HOST="${HOST:-127.0.0.1}"
-PORT="${PORT:-8000}"
+PORT="${PORT:-8080}"
 VENV=".venv"
 
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
