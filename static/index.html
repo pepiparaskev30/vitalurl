@@ -170,7 +170,7 @@ td.n{font-variant-numeric:tabular-nums;color:var(--ink-3);width:44px}
     <input type="checkbox" id="deep">
     <div>
       <label for="deep">Βαθύς έλεγχος</label>
-      <div class="hint" id="deepHint">Μόνο για ενεργά και αβέβαια, με headless browser ή urlscan.io. Αργεί.</div>
+      <div class="hint" id="deepHint">Μόνο για τα αβέβαια, με έλεγχο από άλλο δίκτυο. Αργεί.</div>
     </div>
   </div>
 
@@ -441,13 +441,20 @@ $('#statsx').onclick = async () => {
 };
 
 
+const V_CLS = {'ACTIVE':'b-live','BROWSER BLOCKED':'b-warn','OFFLINE':'b-dead'};
+
 function deepCell(i){
   const d = deep[String(i)];
   if(!d) return '<span class="muted">—</span>';
   if(d.error) return `<span class="badge b-warn">${esc(d.error)}</span>`;
-  if(d.link) return `<a href="${esc(d.link)}" target="_blank" rel="noopener">${d.source === 'search' ? 'υπάρχον scan' : 'urlscan'}</a>`;
-  if(d.screenshot) return `<a href="/api/shot/${data.file_id}/${i}" target="_blank" rel="noopener">screenshot</a>`;
-  return '<span class="muted">ok</span>';
+
+  const parts = [];
+  if(d.verdict) parts.push(`<span class="badge ${V_CLS[d.verdict]||'b-idle'}">${esc(d.verdict)}</span>`);
+  if(d.page_title) parts.push(`<div class="muted" style="font-size:11.5px">${esc(String(d.page_title).slice(0,40))}</div>`);
+  if(d.asn) parts.push(`<div class="chain">${esc(d.asn)}</div>`);
+  if(d.link) parts.push(`<div><a href="${esc(d.link)}" target="_blank" rel="noopener">${d.source === 'search' ? 'υπάρχον scan' : 'urlscan'}</a></div>`);
+  else if(d.screenshot) parts.push(`<div><a href="/api/shot/${data.file_id}/${i}" target="_blank" rel="noopener">screenshot</a></div>`);
+  return parts.join('') || '<span class="muted">ok</span>';
 }
 
 // Ενεργοποίηση της επιλογής μόνο αν υπάρχει διαθέσιμος τρόπος στο μηχάνημα
@@ -457,8 +464,8 @@ fetch('/api/deep-modes').then(r=>r.json()).then(m=>{
     $('#deepHint').textContent = 'Μη διαθέσιμο: απαιτείται playwright ή URLSCAN_API_KEY.';
   }else{
     const hints = {
-      playwright: 'Μόνο για ενεργά και αβέβαια, με τοπικό headless browser. Αργεί.',
-      urlscan:    'Μόνο για ενεργά και αβέβαια, με νέο scan στο urlscan.io. Αργεί.',
+      playwright: 'Μόνο για τα αβέβαια, με τοπικό headless browser. Αργεί.',
+      urlscan:    'Μόνο για τα αβέβαια, με νέο scan από άλλο δίκτυο μέσω urlscan.io. Αργεί.',
       search:     'Αναζήτηση σε υπάρχοντα scans του urlscan.io — χωρίς υποβολή, χωρίς κλειδί.',
     };
     $('#deepHint').textContent = hints[m.mode] || $('#deepHint').textContent;
