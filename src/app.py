@@ -215,10 +215,11 @@ async def support_service(
             chain = results["chain"]
 
     return {
-        "url": clean,
+        "defanged": defang(clean),
         "status": to_greek(status, config["status_gr"]) if config["status_gr"] else status,
         "active": bool(status and status.startswith("ACTIVE")),
         "redirected": len(chain) > 1,
-        "final_url": chain[-1],
+        "final_url_defanged": defang(chain[-1]),
         "chain": chain,
+        "hops": max(len(chain) - 1, 0),
     }
