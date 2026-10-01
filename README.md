@@ -82,7 +82,7 @@ curl -s -OJ "http://127.0.0.1:8000/api/download/$ID/stats"    # Στατιστι
 Endpoint για γρήγορο έλεγχο ενός συνδέσμου, χωρίς αρχείο Excel. Χρήσιμο για άμεση απάντηση σε ερώτημα συναδέλφου, για δοκιμή ενός ύποπτου συνδέσμου ή για κλήση από άλλο script.
 
 ```
-POST /cybercop?url=<URL>&deep=<true|false>
+POST /scanapi?url=<URL>&deep=<true|false>
 ```
 
 | Παράμετρος | Default | |
@@ -93,13 +93,13 @@ POST /cybercop?url=<URL>&deep=<true|false>
 ### Παράδειγμα
 
 ```bash
-curl -sg -X POST "http://127.0.0.1:8000/cybercop?url=hxxps:[://]example[.]com/login" | python3 -m json.tool
+curl -sg -X POST "http://127.0.0.1:8000/scanapi?url=hxxps:[://]example[.]com/login" | python3 -m json.tool
 ```
 
 Το `-g` χρειάζεται επειδή τα `[ ]` είναι ειδικοί χαρακτήρες για το shell. Εναλλακτικά:
 
 ```bash
-curl -s -X POST "http://127.0.0.1:8000/cybercop" \
+curl -s -X POST "http://127.0.0.1:8000/scanapi" \
      --get --data-urlencode "url=hxxps:[://]example[.]com/login"
 ```
 
