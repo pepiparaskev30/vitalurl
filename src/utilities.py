@@ -166,7 +166,7 @@ def classify_response(r, original_url):
     return f"HTTP ERROR ({code})", chain
 
 
-def check_single(url, user_agents, timeout=10):
+def check_single(url, user_agents, timeout=30):
     """Returns (status, redirect_chain). ACTIVE from any user agent wins."""
     if pd.isna(url) or not str(url).strip():
         return None, []

@@ -12,7 +12,7 @@
     "SSL ERROR": "ΣΦΑΛΜΑ ΠΙΣΤΟΠΟΙΗΤΙΚΟΥ SSL",
     "TIMEOUT": "ΛΗΞΗ ΧΡΟΝΟΥ ΑΝΑΜΟΝΗΣ",
     "TOO MANY REDIRECTS": "ΥΠΕΡΒΟΛΙΚΕΣ ΑΝΑΚΑΤΕΥΘΥΝΣΕΙΣ",
-    "CONNECTION REFUSED": "ΑΠΟΡΡΙΨΗ ΣΥΝΔΕΣΗΣ",
+    "CONNECTION REFUSED": "Μη προσβάσιμος ιστότοπος, απόρριψη σύνδεσης από τον διακομιστή. Το domain παραμένει καταχωρημένο",
     "CONNECTION ERROR": "ΣΦΑΛΜΑ ΣΥΝΔΕΣΗΣ",
     "DNS NOT RESOLVED": "ΑΝΕΝΕΡΓΟ ΤΟΜΕΑ (DNS)",
     "INVALID URL": "ΜΗ ΕΓΚΥΡΟ URL",

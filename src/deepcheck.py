@@ -24,6 +24,7 @@ import os
 import time
 
 import requests
+from urllib.parse import urlparse
 
 DEEP_MODE = os.getenv("DEEP_MODE", "auto").lower()
 DEEP_LIMIT = int(os.getenv("DEEP_LIMIT", "30"))
@@ -31,11 +32,32 @@ DEEP_WORKERS = int(os.getenv("DEEP_WORKERS", "3"))
 URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY", "")
 URLSCAN_VISIBILITY = os.getenv("URLSCAN_VISIBILITY", "unlisted")
 
-# Μόνο αυτές οι κατηγορίες περνούν από βαθύ έλεγχο
-DEEP_CATEGORIES = ("active", "error")
+# Μόνο τα αβέβαια αποτελέσματα περνούν από βαθύ έλεγχο: εκεί ο απλός έλεγχος
+# δεν μπορεί να πει αν ο ιστότοπος λειτουργεί για τα θύματα.
+DEEP_CATEGORIES = tuple(os.getenv("DEEP_CATEGORIES", "error").split(","))
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+
+
+# Σελίδες-μεσολαβητές: ο ιστότοπος υπάρχει, αλλά μπλοκάρεται από τον πάροχο
+BLOCKED_MARKERS = [
+    "suspected phishing", "attention required", "warning: suspected",
+    "deceptive site", "this website has been blocked", "phishing warning",
+    "site is blocked", "access denied",
+]
+
+
+def verdict_from_scan(page_title, status_code, final_url):
+    """ACTIVE / BROWSER BLOCKED / OFFLINE με βάση το τι είδε το scan."""
+    title = (page_title or "").lower()
+    if any(m in title for m in BLOCKED_MARKERS):
+        return "BROWSER BLOCKED"
+    if status_code and int(status_code) >= 400:
+        return "OFFLINE"
+    if final_url:
+        return "ACTIVE"
+    return "UNKNOWN"
 
 
 def playwright_available():
@@ -123,9 +145,20 @@ def _urlscan_one(url, timeout=120):
         if g.status_code == 200:
             data = g.json()
             task, page = data.get("task", {}), data.get("page", {})
+            stats = data.get("stats", {})
             start, final = task.get("url", url), page.get("url", url)
             chain = [start] if start == final else [start, final]
-            return {"source": "urlscan", "chain": chain, "final_url": final,
+            verdicts = data.get("verdicts", {}).get("overall", {})
+            return {"source": "urlscan",
+                    "chain": chain, "final_url": final,
+                    "verdict": verdict_from_scan(page.get("title"), page.get("status"), final),
+                    "page_title": page.get("title"),
+                    "http_status": page.get("status"),
+                    "ip": page.get("ip"), "asn": page.get("asnname"),
+                    "server_country": page.get("country"),
+                    "scanned_from": task.get("scanLocation") or data.get("task", {}).get("country"),
+                    "malicious": bool(verdicts.get("malicious")),
+                    "requests": stats.get("uniqIPs"),
                     "link": task.get("reportURL") or f"https://urlscan.io/result/{uuid}/",
                     "screenshot_url": task.get("screenshotURL")}
     return {"source": "urlscan", "error": "timeout"}
@@ -144,7 +177,7 @@ def _urlscan_batch(items):
 
 def _urlscan_search_one(url):
     """Ψάχνει αν το URL (ή το domain του) έχει ήδη σκαναριστεί. Δεν υποβάλλει τίποτα."""
-    from urllib.parse import urlparse
+    
     host = urlparse(url).netloc
     if not host:
         return {"source": "search", "error": "invalid url"}
@@ -168,7 +201,12 @@ def _urlscan_search_one(url):
     # το hit["result"] είναι το API endpoint (JSON). Η σελίδα για άνθρωπο είναι /result/<uuid>/
     uuid_ = hit.get("_id") or ""
     link = f"https://urlscan.io/result/{uuid_}/" if uuid_ else hit.get("result")
+    page = hit.get("page", {})
     return {"source": "search", "chain": chain, "final_url": final,
+            "verdict": verdict_from_scan(page.get("title"), page.get("status"), final),
+            "page_title": page.get("title"), "http_status": page.get("status"),
+            "ip": page.get("ip"), "asn": page.get("asnname"),
+            "server_country": page.get("country"),
             "link": link, "screenshot_url": hit.get("screenshot"),
             "scanned_at": hit.get("task", {}).get("time")}
 

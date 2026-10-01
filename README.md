@@ -1,4 +1,4 @@
-# CheckMyURL
+# Pepscan
 
 Εργαλείο της Διεύθυνσης Δίωξης Κυβερνοεγκλήματος για τον έλεγχο καταγγελλόμενων URL από αρχείο Excel.
 
@@ -26,27 +26,20 @@ docker compose up -d --build
 Απαιτείται **Python 3.10+**. Σε Ubuntu/Debian: `sudo apt install python3 python3-venv`
 
 ```bash
-chmod +x checkmyurl.sh     # μόνο την πρώτη φορά
-./checkmyurl.sh
+chmod +x pepscan.sh     # μόνο την πρώτη φορά
+./pepscan.sh
 ```
 
 Την πρώτη φορά το script δημιουργεί virtual environment (`.venv/`) και εγκαθιστά τα πακέτα. Στις επόμενες εκτελέσεις ξεκινά αμέσως — ξαναεγκαθιστά πακέτα μόνο αν αλλάξει το `requirements.txt`.
 
 | Εντολή | |
 |---|---|
-| `./checkmyurl.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
-| `./checkmyurl.sh --install-only` | μόνο εγκατάσταση |
-| `HOST=0.0.0.0 PORT=9000 ./checkmyurl.sh` | άλλη διεύθυνση / port |
+| `./pepscan.sh` | εγκατάσταση (αν χρειάζεται) και εκκίνηση |
+| `./pepscan.sh --install-only` | μόνο εγκατάσταση |
+| `HOST=0.0.0.0 PORT=9000 ./pepscan.sh` | άλλη διεύθυνση / port |
 
 Τερματισμός με **Ctrl+C**.
 
-Σε Windows: χρήση μέσω Docker ή WSL.
-
-## Χρήση
-
-### Αρχείο εισόδου
-
-Ένα `.xlsx` ή `.xlsm` με μία γραμμή ανά καταγγελία. Απαραίτητη είναι μόνο η στήλη με το URL. Οι επικεφαλίδες αντιστοιχίζονται αυτόματα στη μορφή της ΕΑΚ, ακόμα κι αν έχουν επιπλέον κατάληξη (π.χ. `URL ή ΙΡ ΑΝΑΚΑΤΕΥΘΥΝΣΗΣ (URLSCAN/WHEREGOES/VIRUSTOTAL)`), και όσες δεν αντιστοιχούν αγνοούνται. Αναγνωρίζονται defanged μορφές (`hxxps[://]`, `hxxps:[://]`, `[.]`, `[dot]`) και Outlook Safe Links.
 
 ### Βήματα
 
@@ -64,7 +57,6 @@ chmod +x checkmyurl.sh     # μόνο την πρώτη φορά
 
 Όλα γίνονται και από terminal, χωρίς τη σελίδα.
 
-Για τον έλεγχο ενός μεμονωμένου URL, δες την ενότητα **Cybercop** παρακάτω.
 
 **Έλεγχος αρχείου**:
 
@@ -78,14 +70,14 @@ curl -s -OJ "http://127.0.0.1:8000/api/download/$ID/stats"    # Στατιστι
 
 | Endpoint | |
 |---|---|
-| `POST /cybercop?url=…` | έλεγχος ενός URL, απάντηση σε JSON |
+| `POST /scanapi?url=…` | έλεγχος ενός URL, απάντηση σε JSON |
 | `POST /api/check` | έλεγχος αρχείου Excel |
 | `GET /api/download/{file_id}` | το αρχείο προς ΕΑΚ |
 | `GET /api/download/{file_id}/stats` | τα στατιστικά |
 | `GET /api/deep-modes` | ποιος τρόπος βαθέος ελέγχου είναι διαθέσιμος |
 | `GET /docs` | αυτόματη τεκμηρίωση και δοκιμή στον browser |
 
-## Cybercop — έλεγχος ενός URL
+## Pepscan — έλεγχος ενός URL
 
 Endpoint για γρήγορο έλεγχο ενός συνδέσμου, χωρίς αρχείο Excel. Χρήσιμο για άμεση απάντηση σε ερώτημα συναδέλφου, για δοκιμή ενός ύποπτου συνδέσμου ή για κλήση από άλλο script.
 
@@ -205,8 +197,8 @@ export URLSCAN_VISIBILITY=unlisted   # ποτέ public σε URL ενεργής �
 | `DEEP_LIMIT` | 30 | μέγιστες γραμμές ανά βαθύ έλεγχο |
 | `URLSCAN_API_KEY` | — | κλειδί urlscan.io |
 | `URLSCAN_VISIBILITY` | unlisted | unlisted, private ή public |
-| `HOST` | 127.0.0.1 | διεύθυνση (μόνο για `checkmyurl.sh`) |
-| `PORT` | 8000 | port (μόνο για `checkmyurl.sh`) |
+| `HOST` | 127.0.0.1 | διεύθυνση (μόνο για `pepscan.sh`) |
+| `PORT` | 8000 | port (μόνο για `pepscan.sh`) |
 
 ## Δομή
 
@@ -220,7 +212,7 @@ export URLSCAN_VISIBILITY=unlisted   # ποτέ public σε URL ενεργής �
 │   └── *.json          ρυθμίσεις
 ├── static/             UI (index.html, logo)
 ├── output/             παραγόμενα αρχεία
-├── checkmyurl.sh       εγκατάσταση και εκκίνηση χωρίς Docker
+├── pepscan.sh       εγκατάσταση και εκκίνηση χωρίς Docker
 ├── Dockerfile
 └── docker-compose.yml
 ```
