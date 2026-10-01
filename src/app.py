@@ -216,7 +216,7 @@ async def support_service(
 
     return {
         "defanged": defang(clean),
-        "status": to_greek(status, config["status_gr"]) if config["status_gr"] else status,
+        "status": status,
         "active": bool(status and status.startswith("ACTIVE")),
         "redirected": len(chain) > 1,
         "final_url_defanged": defang(chain[-1]),
