@@ -196,7 +196,7 @@ def screenshot(file_id: str, index: int):
     return FileResponse(os.path.join(OUTPUT_PATH, name), media_type="image/png")
 
 
-@app.post("/scanapi")
+@app.post("/api")
 async def support_service(
     url: str = Query(..., description="URL σε defanged ή κανονική μορφή"),
     deep: bool = Query(False, description="Επιπλέον έλεγχος με browser ή urlscan"),
